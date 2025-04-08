@@ -10,12 +10,8 @@ import sys
 import argparse
 from getpass import getuser
 
-try:
-    from fabric.api import settings, hide, run, execute
-except ImportError:
-    print ("ERROR: fabric libraries not present.")
-    print ("run 'pip install fabric' to fix")
-    sys.exit(1)
+from fabric import Connection
+from invoke import UnexpectedExit
 
 
 class DeployKey():
@@ -51,38 +47,43 @@ class DeployKey():
     def _get_local_key(self):
         try:
             key = open(self.local_key_path).read().strip()
-        except:
-            print ("ERROR: key file '%s' could not be opened." %
-                   self.local_key_path)
+        except Exception:
+            print("ERROR: key file '%s' could not be opened." %
+                  self.local_key_path)
             sys.exit(1)
         return key
 
     def deploy_key(self):
         key = self._get_local_key()
         copied = 0
-        with(settings(hide('everything'),
-                      user=self.username, host_string=self.hostname,
-                      password=self.password, port=self.port,)):
-            if '1' in (run('[ -f %s ] && echo 1 || echo 0' %
-                           self.remote_key_path)):
-                authorized_keys = run('cat %s' % self.remote_key_path)
+        conn = Connection(
+            host=self.hostname,
+            user=self.username,
+            port=self.port,
+            connect_kwargs={"password": self.password} if self.password else {}
+        )
+        try:
+            if conn.run(f'[ -f {self.remote_key_path} ] && echo 1 || echo 0', hide=True).stdout.strip() == '1':
+                authorized_keys = conn.run(f'cat {self.remote_key_path}', hide=True).stdout
                 if key not in authorized_keys:
-                    run('echo >> %s' % self.remote_key_path)
-                    run('echo %s >> %s' % (key, self.remote_key_path))
+                    conn.run(f'echo >> {self.remote_key_path}', hide=True)
+                    conn.run(f'echo "{key}" >> {self.remote_key_path}', hide=True)
                     copied += 1
                 else:
-                    print ("WARNING: ssh public key already exists in '%s'" %
-                           self.remote_key_path)
+                    print(f"WARNING: ssh public key already exists in '{self.remote_key_path}'")
             else:
                 dirpath, filename = os.path.split(self.remote_key_path)
-                run('mkdir -p %s' % dirpath)
-                run('echo %s > %s' % (key, self.remote_key_path))
-                run('chmod 600 %s' % self.remote_key_path)
+                conn.run(f'mkdir -p {dirpath}', hide=True)
+                conn.run(f'echo "{key}" > {self.remote_key_path}', hide=True)
+                conn.run(f'chmod 600 {self.remote_key_path}', hide=True)
                 copied += 1
-            print
-            print 'Number of key copyed: ', copied
-            print ("Now try logging into the machine with: 'ssh %s@%s'" %
-                   (self.username, self.hostname))
+            print()
+            print('Number of keys copied: ', copied)
+            print(f"Now try logging into the machine with: 'ssh {self.username}@{self.hostname}'")
+        except UnexpectedExit as e:
+            print(f"ERROR: Command failed: {e.result.command}")
+            print(e.result.stderr)
+            sys.exit(1)
 
 
 if __name__ == '__main__':
@@ -98,17 +99,18 @@ if __name__ == '__main__':
     username = None
     if '@' in args.hostname:
         if args.hostname.count('@') > 1:
-            print ('ERROR: unrecognized [user@]machine %s ' % args.hostname)
+            print('ERROR: unrecognized [user@]machine %s ' % args.hostname)
             sys.exit(1)
         username, hostname = hostname.split('@')
 
     ssh_copy_id = DeployKey(hostname, username, port=args.port,
                             local_key_path=args.identity_file).deploy_key
     try:
-        execute(ssh_copy_id)
+        ssh_copy_id()
     except KeyboardInterrupt:
-        print '\nKeyboardInterrupt'
+        print('\nKeyboardInterrupt')
     except SystemExit:
-        print '\nSystemExit'
+        print('\nSystemExit')
     except Exception as e:
-        print '\nERROR: ', e
+        print('\nERROR: ', e)
+
