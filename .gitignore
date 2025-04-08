@@ -3,3 +3,4 @@ build/
 *.pyc
 /.idea/
 /.venv/
+/ssh-copy-id.exe/
