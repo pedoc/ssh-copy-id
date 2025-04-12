@@ -1,0 +1,11 @@
+bcrypt
+cffi
+cryptography
+decorator
+deprecated
+fabric
+invoke
+paramiko
+pycparser
+pynac
+wrapt
