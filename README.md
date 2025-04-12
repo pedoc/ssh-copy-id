@@ -14,7 +14,7 @@ poetry install
 
 ## Build
 ```cmd
-poetry run nuitka --onefile --standalone --output-dir=ssh-copy-id.exe ssh-copy-id.py
+poetry run nuitka --onefile --standalone --output-dir=dist --output-filename=ssh-copy-id.exe ssh-copy-id.py
 ```
 
 ## Usage
