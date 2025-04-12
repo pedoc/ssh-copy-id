@@ -34,7 +34,7 @@ jobs:
         pip install -r requirements.txt
 
     - name: Build with Nuitka (Windows)
-      run: python -m nuitka --onefile --standalone --output-dir=dist --output-filename=${{ matrix.output_name }} --assume-yes-for-downloads wss.py
+      run: python -m nuitka --onefile --standalone --output-dir=dist --output-filename=${{ matrix.output_name }} --assume-yes-for-downloads ssh-copy-id.py
     
     - name: Create Github Release
       id: create_release
@@ -88,7 +88,7 @@ jobs:
         pip install -r requirements.txt
     
     - name: Build with Nuitka (Linux)
-      run: python -m nuitka --onefile --standalone --output-dir=dist --output-filename=${{ matrix.output_name }} --assume-yes-for-downloads wss.py
+      run: python -m nuitka --onefile --standalone --output-dir=dist --output-filename=${{ matrix.output_name }} --assume-yes-for-downloads ssh-copy-id.py
     
     - name: Create Github Release
       id: create_release
