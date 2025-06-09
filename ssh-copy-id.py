@@ -84,7 +84,7 @@ class DeployKey():
                     port=self.port,
                     connect_kwargs={"password": self.password} if self.password else {}
                 )
-                print(conn.__class__)
+                # print(conn.__class__)
                 conn.open()
                 return conn
             except AuthenticationException:
