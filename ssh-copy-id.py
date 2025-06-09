@@ -15,6 +15,8 @@ from invoke import UnexpectedExit
 from paramiko.ssh_exception import AuthenticationException
 import paramiko
 
+# import logging
+# logging.basicConfig(level=logging.DEBUG)
 
 class DeployKey():
     def __init__(self, hostname, username=None, password=None, port=22,
@@ -82,11 +84,15 @@ class DeployKey():
                     port=self.port,
                     connect_kwargs={"password": self.password} if self.password else {}
                 )
+                print(conn.__class__)
                 conn.open()
                 return conn
             except AuthenticationException:
                 self.password = getpass(f"[{retry_count}] {self.username}@{self.hostname}'s password: ")
                 retry_count += 1
+            except Exception as e:
+                print(f"ERROR: {e}")
+                sys.exit(1)
 
     def deploy_key(self):
         key = self._get_local_key()
@@ -119,8 +125,19 @@ class DeployKey():
             print(e.result.stderr)
             sys.exit(1)
 
+# Patch built-in open function to default to UTF-8 encoding
+def patch_builtins_open():
+    import builtins
+    original_open = builtins.open
+    def utf8_open(*args, **kwargs):
+        if 'encoding' not in kwargs:
+            kwargs['encoding'] = 'utf-8'
+        return original_open(*args, **kwargs)
+    builtins.open = utf8_open
 
 if __name__ == '__main__':
+    patch_builtins_open()
+
     parser = argparse.ArgumentParser(description='ssh-copy-id by Zhengyi')
     parser.add_argument('hostname', help='[user@]machine')
     parser.add_argument('-i', nargs='?', dest='identity_file', default=None,
